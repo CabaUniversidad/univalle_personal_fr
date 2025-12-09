@@ -24,3 +24,38 @@ jobs:
 
       - name: Subir imagen a DockerHub
         run: docker push ${{ secrets.DOCKER_USER }}/univalle_personal_fr:latest
+  notificar-al-finalizar:  
+    needs: [construir-y-publicar]  
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar notificacion de despliegue a Gmail
+        # Usamos una acción popular de terceros para enviar correos SMTP
+        uses: dawidd6/action-send-mail@v3 
+        with:
+          # Configuración del servidor SMTP de Gmail
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          
+          # Credenciales de Gmail (usando los Secrets de GitHub)
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          
+          # Destinatario y Remitente
+          to: 'abdelpre18@gmail.com' # El correo que debe recibir la notificación
+          from: ${{ secrets.MAIL_USERNAME }} # Opcional: Para que el remitente sea tu mismo Gmail
+          
+          # Asunto del correo
+          subject: | # Usa | para contenido multi-línea
+            ✅ Despliegue completado De Frontend| ${{ github.repository }} | Estatus: ${{ job.status }}
+          
+          # Cuerpo del correo (puedes usar HTML para un mejor formato)
+          body: |
+            El flujo de trabajo **${{ github.workflow }}** se ha ejecutado con éxito.
+            
+            **Detalles del Despliegue Del Frontend:**
+            - Repositorio: ${{ github.repository }}
+            - Commit: ${{ github.sha }}
+            - Estatus: **${{ job.status }}**
+            - Enlace al log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          if: always() 
